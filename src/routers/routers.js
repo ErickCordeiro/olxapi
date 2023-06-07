@@ -3,6 +3,7 @@ import { Auth } from '../middleware/AuthMiddleware.js';
 import AuthController from '../controllers/AuthController.js';
 import UserController from '../controllers/UserController.js';
 import AdController from '../controllers/AdController.js';
+import AuthValidator from '../validators/AuthValidator.js';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ router.get('/ping', (request, response) => {
 });
 
 router.post("/login", AuthController.signin);
-router.post("/register", AuthController.signup);
+router.post("/register", AuthValidator.signup,AuthController.signup);
 
 router.get('/states', UserController.getStates);
 router.get('/user/me', Auth.private, UserController.show);
