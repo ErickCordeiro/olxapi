@@ -26,6 +26,22 @@ const signup = checkSchema({
     }
 });
 
+const signin = checkSchema({
+    email: {
+        isEmail: true,
+        normalizeEmail: true,
+        errorMessage: 'O Formato do E-mail esta inválido'
+    },
+    password: {
+        isLength: {
+            options: { min: 6, max: 12 }
+        },
+        trim: true,
+        errorMessage: 'A senha precisa conter de 6 a 12 dígitos'
+    },
+});
+
 export default {
-    signup
+    signup,
+    signin
 }
