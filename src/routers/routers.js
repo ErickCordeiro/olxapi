@@ -4,6 +4,7 @@ import AuthController from '../controllers/AuthController.js';
 import UserController from '../controllers/UserController.js';
 import AdController from '../controllers/AdController.js';
 import AuthValidator from '../validators/AuthValidator.js';
+import UserValidator from '../validators/UserValidator.js';
 
 const router = Router();
 
@@ -16,7 +17,7 @@ router.post("/register", AuthValidator.signup,AuthController.signup);
 
 router.get('/states', UserController.getStates);
 router.get('/user/me', Auth.private, UserController.show);
-router.put('/user/me', Auth.private, UserController.update);
+router.put('/user/me', UserValidator.edit, Auth.private, UserController.update);
 
 router.get('/categories', AdController.getCategories);
 router.get('/ads/', AdController.index);

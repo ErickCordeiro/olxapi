@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { validationResult, matchedData } from "express-validator";
 import User from "../models/User.js";
 import State from "../models/State.js";
+import Jwt from "jsonwebtoken";
 
 const signin = async (req, res) => {
     const errors = validationResult(req);
@@ -34,8 +35,13 @@ const signin = async (req, res) => {
         });
     }
 
-    const payload = (Date.now() + Math.random()).toString();
-    const token = await bcrypt.hash(payload, 10);
+    const token = Jwt.sign(
+        { id:user.id, email:user.email},
+        process.env.JWT_SECRET_KEY,
+        {
+            expiresIn: 21600 //15 days
+        }
+    );
 
     user.token = token;
     await user.save();
@@ -91,15 +97,11 @@ const signup = async (req, res) => {
     }
 
     const passHash = await bcrypt.hash(data.password, 10);
-    
-    const payload = (Date.now() + Math.random()).toString();
-    const token = await bcrypt.hash(payload, 10);
 
     const newUser = new User({
         name: data.name,
         email: data.email,
         password: passHash,
-        token,
         state: data.state,
     })
 
