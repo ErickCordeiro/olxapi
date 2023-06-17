@@ -1,105 +1,233 @@
-import Category from '../models/Category.js';
-import Ad from '../models/Ad.js'
-import User from '../models/User.js';
-import Helper from '../helpers/helpers.js';
+import mongoose from "mongoose";
+import Category from "../models/Category.js";
+import Ad from "../models/Ad.js";
+import User from "../models/User.js";
+import State from "../models/State.js";
+import Helper from "../helpers/helpers.js";
 
 const getCategories = async (req, res) => {
-   const cats = await Category.find();
+  const cats = await Category.find();
 
-   let categories = [];
+  let categories = [];
 
-   for(let i in cats) {
-      categories.push({
-         ...cats[i]._doc, 
-         img: `${process.env.BASE_URL}/images/${cats[i].slug}.png`
-      });
-   }
+  for (let i in cats) {
+    categories.push({
+      ...cats[i]._doc,
+      img: `${process.env.BASE_URL}/images/${cats[i].slug}.png`,
+    });
+  }
 
-   return res.status(200).json({
-      categories
-   })
+  return res.status(200).json({
+    categories,
+  });
 };
 
 const index = async (req, res) => {
- 
+  let {
+    sort = "asc",
+    offset = 0,
+    limit = 12,
+    search,
+    category,
+    state,
+  } = req.query;
+  let filters = { status: true };
+  let total = 0;
+
+  if (search) {
+    filters.title = { $regex: search, $options: "i" };
+  }
+
+  if (category) {
+    const cat = await Category.findOne({ slug: category }).exec();
+    if (cat) {
+      filters.category = cat._id.toString();
+    }
+  }
+
+  if (state) {
+    const uf = await State.findOne({ name: state.toUpperCase() }).exec();
+    if (uf) {
+      filters.state = uf._id.toString();
+    }
+  }
+
+  const adsTotal = await Ad.find(filters).exec();
+  total = adsTotal.length;
+
+  const adsData = await Ad.find(filters)
+    .sort({ createdAt: sort == "desc" ? -1 : 1 })
+    .skip(parseInt(offset))
+    .limit(parseInt(limit))
+    .exec();
+
+  let ads = [];
+
+  for (let i in adsData) {
+    let image;
+    let imgDefault = adsData[i].images.find((el) => el.default);
+
+    if (imgDefault) {
+      image = `${process.env.BASE_URL}/images/ads/${imgDefault.url}`;
+    } else {
+      image = `${process.env.BASE_URL}/images/ads/default.jpg`;
+    }
+
+    ads.push({
+      id: adsData[i].id,
+      title: adsData[i].title,
+      price: adsData[i].price,
+      priceNegotible: adsData[i].priceNegotible,
+      image,
+    });
+  }
+
+  return res.status(200).json({ ads, total });
 };
 
 const show = async (req, res) => {
-    
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(404).json({
+      error: true,
+      message:
+        "O Anúncio não esta em um formato válido, desculpe, volte novamente mais tarde!",
+    });
+  }
+
+  const item = await Ad.findById(req.params.id);
+  item.views++;
+  await item.save();
+
+  let images = [];
+  for(let i in item.images){
+    images.push(`${process.env.BASE_URL}/images/ads/${item.images[i].url}`);
+  }
+
+  let category = await Category.findById(item.category).exec();
+  let userInfo = await User.findById(item.userId).exec();
+  let stateInfo = await State.findById(item.state).exec();
+
+  let other = [];
+  let ads = await Ad.find({category: item.category}).limit(8).exec();
+
+  for(let i in ads){
+    if(ads[i]._id.toString() != item._id.toString()) {
+      let img = `${process.env.BASE_URL}/images/ads/default.jpg`;
+
+      let defaultImage = ads[i].images.find(el => el.default);
+      if(defaultImage){
+        img = `${process.env.BASE_URL}/images/ads/${defaultImage.url}`;
+      }
+  
+      other.push({
+        id: ads[i]._id,
+        title: ads[i].title,
+        price: ads[i].price,
+        priceNegotible: ads[i].priceNegotible,
+        img
+      })
+    }
+  }
+
+
+  return res.status(200).json({
+    id: item._id,
+    title: item.title,
+    price: item.price,
+    priceNegotible: item.priceNegotible,
+    description: item.description,
+    createdAt: item.createdAt,
+    views: item.views,
+    images,
+    category,
+    user: {
+      name: userInfo.name,
+      email: userInfo.email
+    },
+    state: stateInfo.name,
+    other
+  });
 };
 
 const store = async (req, res) => {
-   let { title, price, priceneg, description, category } = req.body;
-   const token = Helper.getToken(req);
+  let { title, price, priceneg, description, category } = req.body;
+  const token = Helper.getToken(req);
 
-   const user = await User.findOne({
-      token
-   }).exec();
+  const user = await User.findOne({
+    token,
+  }).exec();
 
-   if(!title || !price || !category){
-      return res.status(404).json({ 
-         error: true,
-         message: "Título, categoria e preço são obrigatório, por favor verifique!"
-      });
-   }
+  if (!title || !price || !category) {
+    return res.status(404).json({
+      error: true,
+      message:
+        "Título, categoria e preço são obrigatório, por favor verifique!",
+    });
+  }
 
-   price = Helper.formatNumber(price);
+  price = Helper.formatNumber(price);
 
-   try {
-      const newAd = new Ad();
-      newAd.status = true;
-      newAd.userId = user._id;
-      newAd.state = user.state;
-      newAd.category = category;
-      newAd.createdAt = new Date();
-      newAd.title = title;
-      newAd.slug = Helper.strToSlug(title);
-      newAd.description = description;
-      newAd.price = price;
-      newAd.priceNegotible = (priceneg == 'true')? true: false;
-      newAd.views = 0;
+  try {
+    const newAd = new Ad();
+    newAd.status = true;
+    newAd.userId = user._id;
+    newAd.state = user.state;
+    newAd.category = category;
+    newAd.createdAt = new Date();
+    newAd.title = title;
+    newAd.slug = Helper.strToSlug(title);
+    newAd.description = description;
+    newAd.price = price;
+    newAd.priceNegotible = priceneg == "true" ? true : false;
+    newAd.views = 0;
 
-      if(req.files && req.files.img){
-         if(req.files.img.lenght == undefined){
-            if(['image/jpeg', 'image/jpg', 'image/png'].includes(req.files.img.mimetype)) {
-               let url = Helper.saveImage(req.files.img.data);
-               newAd.images.push({
-                  url,
-                  default: false
-               });
-            }
-         } else {
-            for(let i=0; i < req.files.img.lenght; i++) {
-               if(['image/jpeg', 'image/jpg', 'image/png'].includes(req.files.img[i].mimetype)) {
-                  let url = Helper.saveImage(req.files.img[i].data);
-                  newAd.images.push({
-                     url,
-                     default: false
-                  });
-               }
-            }
-         }
+    if (req.files && req.files.img) {
+      if (req.files.img.lenght == undefined) {
+        if (
+          ["image/jpeg", "image/jpg", "image/png"].includes(
+            req.files.img.mimetype
+          )
+        ) {
+          let url = Helper.saveImage(req.files.img.data);
+          newAd.images.push({
+            url,
+            default: false,
+          });
+        }
+      } else {
+        for (let i = 0; i < req.files.img.lenght; i++) {
+          if (
+            ["image/jpeg", "image/jpg", "image/png"].includes(
+              req.files.img[i].mimetype
+            )
+          ) {
+            let url = Helper.saveImage(req.files.img[i].data);
+            newAd.images.push({
+              url,
+              default: false,
+            });
+          }
+        }
       }
+    }
 
-      if(newAd.images.length > 0) {
-         newAd.images[0].default = true;
-      }
+    if (newAd.images.length > 0) {
+      newAd.images[0].default = true;
+    }
 
-      const info = await newAd.save();
-      return res.status(201).json({info})
-   } catch (error) {
-      return new Error("ERROR: " + error.message);
-   }
+    const info = await newAd.save();
+    return res.status(201).json({ info });
+  } catch (error) {
+    return new Error("ERROR: " + error.message);
+  }
 };
 
-const update = async (req, res) => {
-    
-};
+const update = async (req, res) => {};
 
 export default {
-   getCategories,
-   index, 
-   show, 
-   store, 
-   update,
-}
+  getCategories,
+  index,
+  show,
+  store,
+  update,
+};

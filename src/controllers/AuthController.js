@@ -109,8 +109,7 @@ const signup = async (req, res) => {
 
     return res.status(200).json({
         success: true, 
-        message: "Registro efetuado com sucesso!",
-        token
+        message: "Registro efetuado com sucesso!"
     })
 };
 

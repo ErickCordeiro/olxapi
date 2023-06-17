@@ -20,8 +20,8 @@ router.get('/user/me', Auth.private, UserController.show);
 router.put('/user/me', UserValidator.edit, Auth.private, UserController.update);
 
 router.get('/categories', AdController.getCategories);
-router.get('/ads/', AdController.index);
-router.get('/ad/show', Auth.private, AdController.show);
+router.get('/ads', AdController.index);
+router.get('/ad/:id', AdController.show);
 router.post('/ad/store', Auth.private, AdController.store);
 router.post('/ad/:id', Auth.private, AdController.update);
 
