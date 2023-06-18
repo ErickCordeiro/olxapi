@@ -165,6 +165,24 @@ const store = async (req, res) => {
     });
   }
 
+  if (!mongoose.Types.ObjectId.isValid(category)) {
+    return res.status(404).json({
+      error: true,
+      message:
+        "A categoria informada não esta num formato válido, verifique",
+    });
+  }
+
+  const cat = await Category.findById(category);
+  if (!cat) { 
+    return res.status(404).json({
+      error: true,
+      message:
+        "A categoria não existe em nossa base de dados, verifique",
+    });
+  }
+
+
   price = Helper.formatNumber(price);
 
   try {
@@ -172,7 +190,7 @@ const store = async (req, res) => {
     newAd.status = true;
     newAd.userId = user._id;
     newAd.state = user.state;
-    newAd.category = category;
+    newAd.category = cat._id.toString();
     newAd.createdAt = new Date();
     newAd.title = title;
     newAd.slug = Helper.strToSlug(title);
@@ -222,7 +240,121 @@ const store = async (req, res) => {
   }
 };
 
-const update = async (req, res) => {};
+const update = async (req, res) => {
+  const token = Helper.getToken(req);
+  let { id } = req.params;
+  let  { title, status, price, priceneg, description, category, images } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(404).json({
+      error: true,
+      message:
+        "O Anúncio não esta em um formato válido, desculpe, volte novamente mais tarde!",
+    });
+  }
+
+  const ad = await Ad.findById(id).exec();
+  if (!ad) {
+    return res.status(404).json({
+      error: true,
+      message:
+        "O Anúncio não encontrado ou inexistente!",
+    });
+  }
+
+  const user = await User.findOne({token: token}).exec();
+  if(user._id.toString() !== ad.userId){
+    return res.status(404).json({
+      error: true,
+      message:
+        "O Anúncio não está vinculado ao seu usuário, verifique!",
+    });
+  }
+
+  let updates = {};
+
+  if(title){
+    updates.title = title;
+    updates.slug = Helper.strToSlug(title);
+  }
+
+  if(price) {
+    price = Helper.formatNumber(price);
+    updates.price = price;
+  }
+
+  if(priceneg){
+    updates.priceNegotible = priceneg;
+  }
+
+  if(status) {
+    updates.status = status == "on" ? true : false;
+  }
+
+  if(description) {
+    updates.description = description;
+  }
+
+  if(category) {
+    const cat = await Category.findOne({slug: category}).exec();
+    if(!cat){
+      return res.status(404).json({
+        error: true,
+        message:
+          "A categoria que esta enviando não existe, verifique!",
+      });
+    }
+
+    updates.category = cat._id.toString();
+  }
+
+  if(images) {
+    updates.images = images;
+  }
+
+  await Ad.findByIdAndUpdate(id, {$set: updates});
+
+  if (req.files && req.files.img) {
+    const adI = await Ad.findById(id);
+
+    if (req.files.img.lenght == undefined) {
+      if (
+        ["image/jpeg", "image/jpg", "image/png"].includes(
+          req.files.img.mimetype
+        )
+      ) {
+        let url = Helper.saveImage(req.files.img.data);
+        newAd.images.push({
+          url,
+          default: false,
+        });
+      }
+    } else {
+      for (let i = 0; i < req.files.img.lenght; i++) {
+        if (
+          ["image/jpeg", "image/jpg", "image/png"].includes(
+            req.files.img[i].mimetype
+          )
+        ) {
+          let url = Helper.saveImage(req.files.img[i].data);
+          newAd.images.push({
+            url,
+            default: false,
+          });
+        }
+      }
+    }
+
+    adI.images = [...adI, images];
+    await adI.save();
+  }
+
+  return res.status(200).json({
+    success: true,
+    message:
+      "Parabéns! O seu anúncio foi atualizado com sucesso!",
+  });
+};
 
 export default {
   getCategories,
