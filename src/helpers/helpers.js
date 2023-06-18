@@ -7,7 +7,7 @@ const getToken = (req) => {
 }
 
 const formatNumber = (item) => {
-    return parseFloat(item.replace(".", " ").replace(",", "."))
+    return parseFloat(item.replace(".", "").replace(",", "."))
 }
 
 function strToSlug(text) {
