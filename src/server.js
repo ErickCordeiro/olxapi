@@ -2,10 +2,10 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { mongoConnect } from "./src/database/connect.js"
+import { mongoConnect } from './database/connect.js'
 import cors from 'cors';
 import fileUpload from 'express-fileupload';
-import Routers from './src/routers/routers.js';
+import Routers from './routers/routers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
