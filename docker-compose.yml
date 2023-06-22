@@ -4,7 +4,7 @@ services:
     container_name: olx-app
     build: .
     ports:
-      - "3000:3000"
+      - "30202:3000"
     command: npm start
 
   mongodb:
