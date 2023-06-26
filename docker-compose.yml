@@ -1,11 +1,11 @@
 version: '3'
 services:
-  app:
-    container_name: olx-app
-    build: .
-    ports:
-      - "30202:3000"
-    command: npm start
+  # app:
+  #   container_name: olx-app
+  #   build: .
+  #   ports:
+  #     - "30202:3000"
+  #   command: npm run dev
 
   mongodb:
     container_name: olx-db

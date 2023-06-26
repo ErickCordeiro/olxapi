@@ -13,7 +13,7 @@ const getCategories = async (req, res) => {
   for (let i in cats) {
     categories.push({
       ...cats[i]._doc,
-      img: `${process.env.BASE_URL}/images/${cats[i].slug}.png`,
+      url: `${process.env.BASE_URL}/images/${cats[i].slug}.svg`,
     });
   }
 

@@ -10,4 +10,4 @@ COPY  . .
 
 EXPOSE 30202
 
-CMD [ "npm", "start" ]
+CMD [ "npm", "DEV" ]
