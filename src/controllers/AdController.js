@@ -103,20 +103,24 @@ const show = async (req, res) => {
     images.push(`${process.env.BASE_URL}/images/ads/${item.images[i].url}`);
   }
 
+  if(images.length == 0){
+    images.push(`${process.env.BASE_URL}/images/ads/default.jpg`);
+  }
+
   let category = await Category.findById(item.category).exec();
   let userInfo = await User.findById(item.userId).exec();
   let stateInfo = await State.findById(item.state).exec();
 
   let other = [];
-  let ads = await Ad.find({category: item.category}).limit(8).exec();
+  let ads = await Ad.find({category: item.category}).limit(4).exec();
 
   for(let i in ads){
     if(ads[i]._id.toString() != item._id.toString()) {
-      let img = `${process.env.BASE_URL}/images/ads/default.jpg`;
+      let image = `${process.env.BASE_URL}/images/ads/default.jpg`;
 
       let defaultImage = ads[i].images.find(el => el.default);
       if(defaultImage){
-        img = `${process.env.BASE_URL}/images/ads/${defaultImage.url}`;
+        image = `${process.env.BASE_URL}/images/ads/${defaultImage.url}`;
       }
   
       other.push({
@@ -124,7 +128,7 @@ const show = async (req, res) => {
         title: ads[i].title,
         price: ads[i].price,
         priceNegotible: ads[i].priceNegotible,
-        img
+        image
       })
     }
   }

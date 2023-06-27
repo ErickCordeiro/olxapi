@@ -1,11 +1,11 @@
 version: '3'
 services:
-  # app:
-  #   container_name: olx-app
-  #   build: .
-  #   ports:
-  #     - "30202:3000"
-  #   command: npm run dev
+  app:
+    container_name: olx-app
+    image: node:18.12.1-alpine
+    ports:
+      - "5000:5000"
+    command: npm install && npm run dev
 
   mongodb:
     container_name: olx-db
@@ -14,3 +14,7 @@ services:
       - '27017:27017'
     volumes:
       - ./data:/data/db
+
+networks:
+  olx:
+    driver: bridge
