@@ -1,5 +1,4 @@
-import { v4 as uuid } from 'uuid';
-import Jimp from 'jimp';
+import fs from 'fs';
 
 const getToken = (req) => {
     const [authType, token] = req.headers.authorization.split(' ');
@@ -21,13 +20,31 @@ function strToSlug(text) {
     return text;
 }
 
-const saveImage = async (buffer) => {
-    let newImage = `${uuid()}.jpg`;
-    let tmpImg = await Jimp.read(buffer);
-    tmpImg.cover(500, 500).quality(80).write(`./public/images/ads/${newImage}}`);
+const saveImage = (base64Data, fileName) => {
+    const imagePath = `public/images/ads/${fileName}`;
 
-    return newImage;
-}
+    if (!fs.existsSync('public/images/ads')) {
+        fs.mkdirSync('public/images/ads', { recursive: true });
+    }
+
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+
+    fs.access('public/images/ads', fs.constants.W_OK, (err) => {
+        if (err) {
+            console.error('O Node.js não tem permissão para escrever na pasta:', imagePath);
+            return;
+        }
+
+        fs.writeFile(imagePath, imageBuffer, (err) => {
+            if (err) {
+                console.log('Erro ao salvar a imagem:', err);
+                return;
+            }
+        });
+    });
+
+    return { img: imagePathWithExtension };
+};
 
 export default {
     getToken,

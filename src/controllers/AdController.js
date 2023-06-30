@@ -154,42 +154,39 @@ const show = async (req, res) => {
 };
 
 const store = async (req, res) => {
-  let { title, price, priceneg, description, category } = req.body;
-  const token = Helper.getToken(req);
-
-  const user = await User.findOne({
-    token,
-  }).exec();
-
-  if (!title || !price || !category) {
-    return res.status(404).json({
-      error: true,
-      message:
-        "Título, categoria e preço são obrigatório, por favor verifique!",
-    });
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(category)) {
-    return res.status(404).json({
-      error: true,
-      message:
-        "A categoria informada não esta num formato válido, verifique",
-    });
-  }
-
-  const cat = await Category.findById(category);
-  if (!cat) { 
-    return res.status(404).json({
-      error: true,
-      message:
-        "A categoria não existe em nossa base de dados, verifique",
-    });
-  }
-
-
-  price = Helper.formatNumber(price);
-
   try {
+    let { title, price, priceneg, description, category, images } = req.body;
+    const token = Helper.getToken(req);
+
+    const user = await User.findOne({token}).exec();
+
+    if (!title || !price || !category) {
+      return res.status(404).json({
+        error: true,
+        message:
+          "Título, categoria e preço são obrigatórios, por favor verifique!",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(category)) {
+      return res.status(404).json({
+        error: true,
+        message:
+          "A categoria informada não está em um formato válido, verifique",
+      });
+    }
+
+    const cat = await Category.findById(category);
+    if (!cat) {
+      return res.status(404).json({
+        error: true,
+        message:
+          "A categoria não existe em nossa base de dados, verifique",
+      });
+    }
+
+    price = Helper.formatNumber(price);
+
     const newAd = new Ad();
     newAd.status = true;
     newAd.userId = user._id;
@@ -203,39 +200,15 @@ const store = async (req, res) => {
     newAd.priceNegotible = priceneg == "true" ? true : false;
     newAd.views = 0;
 
-    if (req.files && req.files.img) {
-      if (req.files.img.lenght == undefined) {
-        if (
-          ["image/jpeg", "image/jpg", "image/png"].includes(
-            req.files.img.mimetype
-          )
-        ) {
-          let url = Helper.saveImage(req.files.img.data);
-          newAd.images.push({
-            url,
-            default: false,
-          });
-        }
-      } else {
-        for (let i = 0; i < req.files.img.lenght; i++) {
-          if (
-            ["image/jpeg", "image/jpg", "image/png"].includes(
-              req.files.img[i].mimetype
-            )
-          ) {
-            let url = Helper.saveImage(req.files.img[i].data);
-            newAd.images.push({
-              url,
-              default: false,
-            });
-          }
-        }
-      }
-    }
-
-    if (newAd.images.length > 0) {
-      newAd.images[0].default = true;
-    }
+    if (images && images.length > 0) {
+      const imagePaths = images.map((base64Image, index) => {
+          const fileName = `image_${index + 1}_${Date.now().toString()}`;
+          const { img } = Helper.saveImage(base64Image, fileName);
+          return { img, default: index === 0 };
+      });
+      
+      newAd.images = imagePaths;
+  }
 
     const info = await newAd.save();
     return res.status(201).json({ info });
