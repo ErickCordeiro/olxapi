@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 
 const getToken = (req) => {
     const [authType, token] = req.headers.authorization.split(' ');
@@ -20,30 +21,35 @@ function strToSlug(text) {
     return text;
 }
 
-const saveImage = (base64Data, fileName) => {
-    const imagePath = `public/images/ads/${fileName}`;
+const saveImage = (images) => {
+    const imagesPath = [];
+    const defaultImage = false;
+    const destinationFolder = 'public/images/ads';
 
-    if (!fs.existsSync('public/images/ads')) {
-        fs.mkdirSync('public/images/ads', { recursive: true });
+    if (!fs.existsSync(destinationFolder)) {
+        fs.mkdirSync(destinationFolder, { recursive: true });
     }
 
-    const imageBuffer = Buffer.from(base64Data, 'base64');
+    for(const image of images) {
+        const imageSplit = image.split(';base64,');
+        const decodedImage = Buffer.from(imageSplit[1], 'base64');
+        const imageName = `image_${Date.now()}.jpg`;
+        const imgPath = path.join(destinationFolder, imageName);
 
-    fs.access('public/images/ads', fs.constants.W_OK, (err) => {
-        if (err) {
-            console.error('O Node.js não tem permissão para escrever na pasta:', imagePath);
-            return;
-        }
 
-        fs.writeFile(imagePath, imageBuffer, (err) => {
-            if (err) {
-                console.log('Erro ao salvar a imagem:', err);
-                return;
-            }
+
+        fs.writeFile(imgPath, decodedImage, (error) => {
+            if(error){
+                console.log("Error: "+ error);
+                return false;
+            } 
         });
-    });
 
-    return { img: imagePathWithExtension };
+        imagesPath.push({ url: imageName, default: defaultImage }); 
+    }
+
+    imagesPath[0].default = true;       
+    return imagesPath;
 };
 
 export default {

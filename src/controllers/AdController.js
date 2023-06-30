@@ -201,14 +201,9 @@ const store = async (req, res) => {
     newAd.views = 0;
 
     if (images && images.length > 0) {
-      const imagePaths = images.map((base64Image, index) => {
-          const fileName = `image_${index + 1}_${Date.now().toString()}`;
-          const { img } = Helper.saveImage(base64Image, fileName);
-          return { img, default: index === 0 };
-      });
-      
+      const imagePaths = Helper.saveImage(images);
       newAd.images = imagePaths;
-  }
+    }
 
     const info = await newAd.save();
     return res.status(201).json({ info });

@@ -14,7 +14,9 @@ export const Auth = {
                     const decoded = Jwt.verify(token, process.env.JWT_SECRET_KEY);
                     success = true;
                 }                   
-            } catch (error) {}
+            } catch (error) {
+                return res.status(403).json({message: error.message});
+            }
         }
 
         if(!success) {
