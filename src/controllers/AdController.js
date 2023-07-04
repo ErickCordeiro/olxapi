@@ -73,12 +73,15 @@ const index = async (req, res) => {
       image = `${process.env.BASE_URL}/images/ads/default.jpg`;
     }
 
+    let cat = await Category.findById(adsData[i].category);
+
     ads.push({
       id: adsData[i].id,
       title: adsData[i].title,
       price: adsData[i].price,
       priceNegotible: adsData[i].priceNegotible,
       image,
+      category: cat
     });
   }
 
@@ -128,7 +131,7 @@ const show = async (req, res) => {
         title: ads[i].title,
         price: ads[i].price,
         priceNegotible: ads[i].priceNegotible,
-        image
+        image,
       })
     }
   }
